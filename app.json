@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "jewelry_store",
-    "slug": "jewelry_store",
+    "name": "marketplace",
+    "slug": "marketplace",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
