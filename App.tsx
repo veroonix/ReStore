@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { initDB } from './database';
 import { ThemeProvider } from './context/ThemeContext';
 import { ThemedNavigation } from './components/ThemedNavigation';
+import i18n from './i18n'; 
 
 SplashScreen.preventAutoHideAsync();
 
@@ -19,6 +20,10 @@ export default function App() {
         const savedTheme = await AsyncStorage.getItem('theme');
         if (savedTheme === 'dark' || savedTheme === 'light') {
           setTheme(savedTheme);
+        }
+        const savedLang = await AsyncStorage.getItem('userLanguage');
+        if (savedLang === 'ru' || savedLang === 'en') {
+          await i18n.changeLanguage(savedLang); // устанавливаем язык
         }
         // Небольшая задержка
         await new Promise(resolve => setTimeout(resolve, 2000));

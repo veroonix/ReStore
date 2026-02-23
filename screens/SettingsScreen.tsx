@@ -5,6 +5,7 @@ import { Languages, Moon } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useStyles } from '../hooks/useStyles';
 import { Colors } from '../constants/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
@@ -15,6 +16,11 @@ export default function SettingsScreen() {
 
   const handleThemeToggle = (value: boolean) => {
     toggleTheme(value ? 'dark' : 'light');
+  };
+
+  const handleLanguageChange = async (lang: 'ru' | 'en') => {
+    await i18n.changeLanguage(lang);
+    await AsyncStorage.setItem('userLanguage', lang); // сохраняем выбор
   };
 
   return (
@@ -53,13 +59,13 @@ export default function SettingsScreen() {
               </View>
               <View style={styles.langButtons}>
                 <TouchableOpacity
-                  onPress={() => i18n.changeLanguage('ru')}
+                  onPress={() => handleLanguageChange('ru')}
                   style={[styles.langBadge, currentLang === 'ru' && styles.activeBadge]}
                 >
                   <Text style={[styles.langBadgeText, currentLang === 'ru' && styles.activeBadgeText]}>RU</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => i18n.changeLanguage('en')}
+                  onPress={() => handleLanguageChange('en')}
                   style={[styles.langBadge, currentLang === 'en' && styles.activeBadge]}
                 >
                   <Text style={[styles.langBadgeText, currentLang === 'en' && styles.activeBadgeText]}>EN</Text>
