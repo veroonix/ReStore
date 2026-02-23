@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
+  Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTranslation } from 'react-i18next';
-import { Plus, Settings, PackageOpen } from 'lucide-react-native';
+import { Plus, Settings, PackageOpen, Edit, Trash2 } from 'lucide-react-native';
 import { RootStackParamList, Ad } from '../types';
-import { getAllAds, addAd } from '../database';
+import { getAllAds, deleteAd } from '../database';
 import { useTheme } from '../context/ThemeContext';
 import { Colors } from '../constants/Colors';
 
@@ -24,40 +25,72 @@ export default function MainScreen() {
   const navigation = useNavigation<MainScreenProps>();
   const { theme, isDark } = useTheme();
   const [ads, setAds] = useState<Ad[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
     const data = await getAllAds();
-    setAds(data as Ad[]);
+    setAds(data);
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  // Обновляем данные при возвращении на экран (например, после добавления/редактирования)
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
-  const handleAddTestAd = async () => {
-    await addAd({
-      title: "Велосипед",
-      description: "Меняю на самокат или продам",
-      price: "5000 ₽",
-      date: new Date().toLocaleDateString()
-    });
-    loadData();
+  const handleDelete = (id: number) => {
+    Alert.alert(
+      t('confirmDelete'),
+      '',
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t('delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAd(id);
+              await loadData(); // перезагружаем список
+            } catch (error) {
+              Alert.alert('Ошибка', 'Не удалось удалить объявление');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderItem = ({ item }: { item: Ad }) => (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      style={styles.card}
-      onPress={() => navigation.navigate('Details', { ad: item })}
-    >
-      <View style={styles.cardContent}>
-        <View style={styles.textContainer}>
-          <Text style={styles.adTitle} numberOfLines={1}>{item.title}</Text>
-          <Text style={styles.adPrice}>{item.price}</Text>
+    <View style={styles.card}>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        style={styles.cardTouchable}
+        onPress={() => navigation.navigate('Details', { ad: item })}
+      >
+        <View style={styles.cardContent}>
+          <View style={styles.textContainer}>
+            <Text style={styles.adTitle} numberOfLines={1}>{item.title}</Text>
+            <Text style={styles.adPrice}>{item.price}</Text>
+          </View>
+          <Text style={styles.adDate}>{item.date}</Text>
         </View>
-        <Text style={styles.adDate}>{item.date}</Text>
+      </TouchableOpacity>
+      <View style={styles.cardActions}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AdForm', { adId: item.id })}
+          style={styles.actionButton}
+        >
+          <Edit size={18} color={Colors[theme].primary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => handleDelete(item.id!)}
+          style={styles.actionButton}
+        >
+          <Trash2 size={18} color="#FF3B30" />
+        </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 
   const styles = useMemo(() => StyleSheet.create({
@@ -102,6 +135,9 @@ export default function MainScreen() {
       shadowRadius: 10,
       elevation: 3,
     },
+    cardTouchable: {
+      flex: 1,
+    },
     cardContent: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -120,12 +156,21 @@ export default function MainScreen() {
     adPrice: {
       fontSize: 16,
       fontWeight: '700',
-      color: Colors[theme].primary, // используем акцентный цвет (зелёный)
+      color: Colors[theme].primary,
     },
     adDate: {
       fontSize: 12,
       color: Colors[theme].secondaryText,
       fontWeight: '500',
+    },
+    cardActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginTop: 12,
+      gap: 16,
+    },
+    actionButton: {
+      padding: 4,
     },
     emptyContainer: {
       alignItems: 'center',
@@ -175,6 +220,12 @@ export default function MainScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshing={refreshing}
+        onRefresh={async () => {
+          setRefreshing(true);
+          await loadData();
+          setRefreshing(false);
+        }}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <PackageOpen size={64} color={Colors[theme].secondaryText} />
@@ -185,7 +236,7 @@ export default function MainScreen() {
 
       <TouchableOpacity 
         style={styles.fab} 
-        onPress={handleAddTestAd}
+        onPress={() => navigation.navigate('AdForm')}
         activeOpacity={0.8}
       >
         <Plus color="#FFF" size={28} />

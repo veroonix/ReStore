@@ -5,6 +5,7 @@ import { RootStackParamList } from '../types';
 import MainScreen from '../screens/MainScreen';
 import DetailsScreen from '../screens/DetailsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import AdFormScreen from '../screens/AdFormScreen';
 import { useTranslation } from 'react-i18next';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -59,6 +60,16 @@ export const AppNavigator = () => {
         options={{ 
           title: t('settings'),
           headerShown: true, // Здесь оставляем стандартный, он отлично впишется
+          headerTitleAlign: Platform.OS === 'android' ? 'left' : 'center',
+        }} 
+      />
+
+      <Stack.Screen 
+        name="AdForm" 
+        component={AdFormScreen} 
+          options={{ 
+          title: t('addAd'),          
+          headerShown: true,           
           headerTitleAlign: Platform.OS === 'android' ? 'left' : 'center',
         }} 
       />

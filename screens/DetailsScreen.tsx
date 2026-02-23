@@ -1,15 +1,26 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
-import { RouteProp, useRoute } from '@react-navigation/native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  StatusBar,
+  TouchableOpacity,
+} from 'react-native';
+import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../types';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { Colors } from '../constants/Colors';
+import { ArrowLeft, Edit } from 'lucide-react-native';
 
 type DetailsRouteProp = RouteProp<RootStackParamList, 'Details'>;
+type DetailsNavigationProp = StackNavigationProp<RootStackParamList, 'Details'>;
 
 export default function DetailsScreen() {
   const { t } = useTranslation();
+  const navigation = useNavigation<DetailsNavigationProp>();
   const route = useRoute<DetailsRouteProp>();
   const { ad } = route.params;
   const { theme, isDark } = useTheme();
@@ -18,6 +29,31 @@ export default function DetailsScreen() {
     container: {
       flex: 1,
       backgroundColor: Colors[theme].background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: Colors[theme].card,
+      borderBottomWidth: 1,
+      borderBottomColor: Colors[theme].border,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    backButton: {
+      marginRight: 16,
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: Colors[theme].text,
+    },
+    editButton: {
+      padding: 8,
     },
     content: {
       padding: 20,
@@ -51,9 +87,27 @@ export default function DetailsScreen() {
     }
   }), [theme]);
 
+  const handleEdit = () => {
+    navigation.navigate('AdForm', { adId: ad.id });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      
+      {/* Кастомный хедер */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <ArrowLeft size={24} color={Colors[theme].text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('details')}</Text>
+        </View>
+        <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
+          <Edit size={22} color={Colors[theme].primary} />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.content}>
         <Text style={styles.label}>{t('details')}</Text>
         <Text style={styles.title}>{ad.title}</Text>
