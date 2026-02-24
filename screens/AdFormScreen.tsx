@@ -187,12 +187,12 @@ export default function AdFormScreen() {
       marginRight: 8,
     },
     pickerContainer: {
-      flex: 1,           // пикер тоже занимает половину
+      flex: 1,           
       backgroundColor: Colors[theme].background,
       borderWidth: 1,
       borderColor: Colors[theme].border,
       borderRadius: 12,
-      // overflow: 'hidden' удалено – на некоторых устройствах могло обрезать
+      
     },
     picker: {
       height: 50,

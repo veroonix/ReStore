@@ -5,8 +5,7 @@ import { Ad } from './types';
 const db = SQLite.openDatabaseSync('marketplace.db');
 
 export const initDB = async () => {
-  // Для простоты при изменении структуры удаляем старую таблицу
-  await db.execAsync(`DROP TABLE IF EXISTS ads;`);
+ // await db.execAsync(`DROP TABLE IF EXISTS ads;`);
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS ads (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +55,7 @@ export const deleteAd = async (id: number): Promise<void> => {
 // Заполнение тестовыми данными (если таблица пуста)
 export const seedAdsIfNeeded = async () => {
   const existingAds = await getAllAds();
-  if (existingAds.length > 0) return; // уже есть данные – ничего не делаем
+  if (existingAds.length > 0) return; 
 
   const sampleAds: Omit<Ad, 'id'>[] = [
     {

@@ -10,12 +10,9 @@ export interface Ad {
   date: string;                
 }
 
-
-
-// types.ts
 export type RootStackParamList = {
   Main: undefined;
   Details: { ad: Ad };
   Settings: undefined;
-  AdForm?: { adId?: number }; // необязательный параметр id для редактирования
+  AdForm?: { adId?: number }; 
 };

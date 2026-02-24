@@ -20,9 +20,7 @@ export const AppNavigator = () => {
     <Stack.Navigator
       initialRouteName="Main"
       screenOptions={{
-        // Динамический фон карточки стека – теперь он совпадает с фоном экранов
         cardStyle: { backgroundColor: Colors[theme].background },
-        // Остальные настройки (можно оставить как есть)
         headerStyle: {
           backgroundColor: Colors[theme].card,
           elevation: 0,

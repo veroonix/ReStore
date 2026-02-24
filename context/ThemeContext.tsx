@@ -20,13 +20,11 @@ export const useTheme = () => {
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  initialTheme?: Theme; // добавили пропс для начальной темы
+  initialTheme?: Theme; 
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, initialTheme = 'light' }) => {
   const [theme, setTheme] = useState<Theme>(initialTheme);
-
-  // Если initialTheme меняется (например, после загрузки из AsyncStorage в App), обновляем состояние
   useEffect(() => {
     setTheme(initialTheme);
   }, [initialTheme]);
