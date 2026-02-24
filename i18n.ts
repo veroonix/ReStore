@@ -6,7 +6,7 @@ i18n.use(initReactI18next).init({
   resources: {
     en: {
       translation: {
-        mainTitle: "Marketplace",
+        mainTitle: "Ads",
         addAd: "Post Ad",
         price: "Price/Exchange",
         settings: "Settings",

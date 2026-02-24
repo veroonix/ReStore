@@ -17,6 +17,7 @@ import { RootStackParamList, Ad } from '../types';
 import { getAllAds, deleteAd } from '../database';
 import { useTheme } from '../context/ThemeContext';
 import { Colors } from '../constants/Colors';
+import { getSharedStyles } from '../styles/sharedStyles';
 
 type MainScreenProps = StackNavigationProp<RootStackParamList, 'Main'>;
 
@@ -27,6 +28,8 @@ export default function MainScreen() {
   const insets = useSafeAreaInsets();
   const [ads, setAds] = useState<Ad[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  const shared = useMemo(() => getSharedStyles(theme), [theme]);
 
   const loadData = async () => {
     const data = await getAllAds();
@@ -62,30 +65,30 @@ export default function MainScreen() {
   };
 
   const renderItem = ({ item }: { item: Ad }) => (
-    <View style={styles.card}>
+    <View style={localStyles.card}>
       <TouchableOpacity
         activeOpacity={0.7}
-        style={styles.cardTouchable}
+        style={localStyles.cardTouchable}
         onPress={() => navigation.navigate('Details', { ad: item })}
       >
-        <View style={styles.cardContent}>
-          <View style={styles.textContainer}>
-            <Text style={styles.adTitle} numberOfLines={1}>{item.title}</Text>
-            <Text style={styles.adPrice}>{item.price}</Text>
+        <View style={localStyles.cardContent}>
+          <View style={localStyles.textContainer}>
+            <Text style={localStyles.adTitle} numberOfLines={1}>{item.title}</Text>
+            <Text style={localStyles.adPrice}>{item.price}</Text>
           </View>
-          <Text style={styles.adDate}>{item.date}</Text>
+          <Text style={localStyles.adDate}>{item.date}</Text>
         </View>
       </TouchableOpacity>
-      <View style={styles.cardActions}>
+      <View style={localStyles.cardActions}>
         <TouchableOpacity
           onPress={() => navigation.navigate('AdForm', { adId: item.id })}
-          style={styles.actionButton}
+          style={localStyles.actionButton}
         >
           <Edit size={18} color={Colors[theme].primary} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => handleDelete(item.id!)}
-          style={styles.actionButton}
+          style={localStyles.actionButton}
         >
           <Trash2 size={18} color="#FF3B30" />
         </TouchableOpacity>
@@ -93,11 +96,7 @@ export default function MainScreen() {
     </View>
   );
 
-  const styles = useMemo(() => StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: Colors[theme].background,
-    },
+  const localStyles = useMemo(() => StyleSheet.create({
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -113,11 +112,6 @@ export default function MainScreen() {
       fontWeight: '800',
       color: Colors[theme].text,
       letterSpacing: -0.5,
-    },
-    iconButton: {
-      padding: 8,
-      backgroundColor: Colors[theme].iconBackground,
-      borderRadius: 12,
     },
     listContent: {
       paddingBottom: 100,
@@ -182,33 +176,17 @@ export default function MainScreen() {
       fontSize: 16,
       color: Colors[theme].secondaryText,
     },
-    fab: {
-      position: 'absolute',
-      bottom: 30,
-      right: 20,
-      backgroundColor: Colors[theme].primary,
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      justifyContent: 'center',
-      alignItems: 'center',
-      elevation: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
-    },
   }), [theme]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[shared.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('mainTitle')}</Text>
+      <View style={localStyles.header}>
+        <Text style={localStyles.headerTitle}>{t('mainTitle')}</Text>
         <TouchableOpacity 
           onPress={() => navigation.navigate('Settings')}
-          style={styles.iconButton}
+          style={shared.iconButton}
         >
           <Settings size={24} color={Colors[theme].text} />
         </TouchableOpacity>
@@ -218,7 +196,7 @@ export default function MainScreen() {
         data={ads}
         keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
         renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={localStyles.listContent}
         showsVerticalScrollIndicator={false}
         refreshing={refreshing}
         onRefresh={async () => {
@@ -227,15 +205,15 @@ export default function MainScreen() {
           setRefreshing(false);
         }}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
+          <View style={localStyles.emptyContainer}>
             <PackageOpen size={64} color={Colors[theme].secondaryText} />
-            <Text style={styles.emptyText}>{t('noAds')}</Text>
+            <Text style={localStyles.emptyText}>{t('noAds')}</Text>
           </View>
         }
       />
 
       <TouchableOpacity 
-        style={styles.fab} 
+        style={shared.fab}
         onPress={() => navigation.navigate('AdForm')}
         activeOpacity={0.8}
       >

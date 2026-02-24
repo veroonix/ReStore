@@ -18,6 +18,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Colors } from '../constants/Colors';
 import { RootStackParamList } from '../types';
 import { addAd, updateAd, getAdById } from '../database';
+import { getSharedStyles } from '../styles/sharedStyles';
 
 type AdFormRouteProp = RouteProp<RootStackParamList, 'AdForm'>;
 type AdFormNavigationProp = StackNavigationProp<RootStackParamList, 'AdForm'>;
@@ -34,6 +35,8 @@ export default function AdFormScreen() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const shared = useMemo(() => getSharedStyles(theme), [theme]);
 
   useEffect(() => {
     if (adId) {
@@ -84,31 +87,7 @@ export default function AdFormScreen() {
     }
   };
 
-  const styles = useMemo(() => StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: Colors[theme].background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      backgroundColor: Colors[theme].card,
-      borderBottomWidth: 1,
-      borderBottomColor: Colors[theme].border,
-    },
-    backButton: {
-      padding: 8,
-      borderRadius: 12,
-      backgroundColor: Colors[theme].iconBackground,
-      marginRight: 16,
-    },
-    headerTitle: {
-      fontSize: 18,
-      fontWeight: '700',
-      color: Colors[theme].text,
-    },
+  const localStyles = useMemo(() => StyleSheet.create({
     scrollContent: {
       flexGrow: 1,
       padding: 20,
@@ -160,33 +139,33 @@ export default function AdFormScreen() {
   }), [theme]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[shared.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
       
       {/* Кастомный хедер */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+      <View style={shared.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={shared.backButton}>
           <ArrowLeft size={24} color={Colors[theme].text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={shared.headerTitle}>
           {adId ? t('editAd') : t('addAd')}
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.form}>
-          <Text style={styles.label}>{t('title')} *</Text>
+      <ScrollView contentContainerStyle={localStyles.scrollContent}>
+        <View style={localStyles.form}>
+          <Text style={localStyles.label}>{t('title')} *</Text>
           <TextInput
-            style={styles.input}
+            style={localStyles.input}
             value={title}
             onChangeText={setTitle}
             placeholder={t('placeholderTitle')}
             placeholderTextColor={Colors[theme].secondaryText}
           />
 
-          <Text style={styles.label}>{t('description')}</Text>
+          <Text style={localStyles.label}>{t('description')}</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[localStyles.input, localStyles.textArea]}
             value={description}
             onChangeText={setDescription}
             placeholder={t('placeholderDescription')}
@@ -196,9 +175,9 @@ export default function AdFormScreen() {
             textAlignVertical="top"
           />
 
-          <Text style={styles.label}>{t('price')}</Text>
+          <Text style={localStyles.label}>{t('price')}</Text>
           <TextInput
-            style={styles.input}
+            style={localStyles.input}
             value={price}
             onChangeText={setPrice}
             placeholder={t('placeholderPrice')}
@@ -206,11 +185,11 @@ export default function AdFormScreen() {
           />
 
           <TouchableOpacity
-            style={[styles.saveButton, loading && styles.disabledButton]}
+            style={[localStyles.saveButton, loading && localStyles.disabledButton]}
             onPress={handleSave}
             disabled={loading}
           >
-            <Text style={styles.saveButtonText}>
+            <Text style={localStyles.saveButtonText}>
               {loading ? t('saving') : (adId ? t('update') : t('add'))}
             </Text>
           </TouchableOpacity>

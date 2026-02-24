@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { Colors } from '../constants/Colors';
 import { ArrowLeft, Edit } from 'lucide-react-native';
+import { getSharedStyles } from '../styles/sharedStyles';
 
 type DetailsRouteProp = RouteProp<RootStackParamList, 'Details'>;
 type DetailsNavigationProp = StackNavigationProp<RootStackParamList, 'Details'>;
@@ -26,44 +27,11 @@ export default function DetailsScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const styles = useMemo(() => StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: Colors[theme].background,
-    },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      backgroundColor: Colors[theme].card,
-      borderBottomWidth: 1,
-      borderBottomColor: Colors[theme].border,
-    },
-    headerLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    backButton: {
-      marginRight: 16,
-    },
-    headerTitle: {
-      fontSize: 18,
-      fontWeight: '700',
-      color: Colors[theme].text,
-    },
-    editButton: {
-      padding: 8,
-    },
+  const shared = useMemo(() => getSharedStyles(theme), [theme]);
+
+  const localStyles = useMemo(() => StyleSheet.create({
     content: {
       padding: 20,
-    },
-    label: {
-      fontSize: 14,
-      color: Colors[theme].primary,
-      fontWeight: 'bold',
-      marginBottom: 10,
     },
     title: {
       fontSize: 24,
@@ -93,28 +61,27 @@ export default function DetailsScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[shared.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       
       {/* Кастомный хедер */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+      <View style={shared.header}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={shared.backButton}>
             <ArrowLeft size={24} color={Colors[theme].text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('details')}</Text>
+          <Text style={shared.headerTitle}>{t('details')}</Text>
         </View>
-        <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
+        <TouchableOpacity onPress={handleEdit} style={shared.iconButton}>
           <Edit size={22} color={Colors[theme].primary} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
-        <Text style={styles.label}>{t('details')}</Text>
-        <Text style={styles.title}>{ad.title}</Text>
-        <Text style={styles.price}>{ad.price}</Text>
-        <Text style={styles.description}>{ad.description}</Text>
-        <Text style={styles.date}>{t('added')}: {ad.date}</Text>
+      <View style={localStyles.content}>
+        <Text style={localStyles.title}>{ad.title}</Text>
+        <Text style={localStyles.price}>{ad.price}</Text>
+        <Text style={localStyles.description}>{ad.description}</Text>
+        <Text style={localStyles.date}>{t('added')}: {ad.date}</Text>
       </View>
     </View>
   );

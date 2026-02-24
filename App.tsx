@@ -7,7 +7,8 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ThemedNavigation } from './components/ThemedNavigation';
 import i18n from './i18n'; 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-
+import { enableScreens } from 'react-native-screens';
+enableScreens();
 
 SplashScreen.preventAutoHideAsync();
 
