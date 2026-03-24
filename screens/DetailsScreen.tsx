@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Image } from 'react-native';
 import {
   View,
   Text,
@@ -63,7 +64,14 @@ export default function DetailsScreen() {
     header: {
     ...shared.header,
     justifyContent: 'space-between',
-  },
+    },
+    detailImage: {
+      width: '100%',
+      height: 200,
+      borderRadius: 12,
+      marginBottom: 16,
+      resizeMode: 'cover',
+    },
   }), [theme]);
 
   const handleEdit = () => {
@@ -88,11 +96,14 @@ export default function DetailsScreen() {
       </View>
 
       <View style={localStyles.content}>
+         {ad.imageUrl && (
+            <Image source={{ uri: ad.imageUrl }} style={localStyles.detailImage} />
+          )}
         <Text style={localStyles.title}>{ad.title}</Text>
         <Text style={localStyles.price}>{getPriceDisplay()}</Text>
         <Text style={localStyles.description}>{ad.description}</Text>
         <Text style={localStyles.date}>{t('added')}: {ad.date}</Text>
       </View>
     </View>
-  );
+  );t
 }

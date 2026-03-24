@@ -27,7 +27,7 @@ export default function App() {
         }
         const savedLang = await AsyncStorage.getItem('userLanguage');
         if (savedLang === 'ru' || savedLang === 'en') {
-          await i18n.changeLanguage(savedLang); // устанавливаем язык
+          await i18n.changeLanguage(savedLang); 
         }
         // Небольшая задержка
         await new Promise(resolve => setTimeout(resolve, 2000));

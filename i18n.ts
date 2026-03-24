@@ -47,6 +47,8 @@ i18n.use(initReactI18next).init({
         confirmDelete: "Are you sure you want to delete this ad?",
         failedDeleteAd: "Failed to delete ad",
         cancel: "Cancel",
+        changeImage: "Change image",
+        addImage: "Add image",
       }
     },
     ru: {
@@ -89,6 +91,9 @@ i18n.use(initReactI18next).init({
         confirmDelete: "Вы уверены, что хотите удалить это объявление?",
         failedDeleteAd: "Не удалось удалить объявление",
         cancel: "Отмена",
+        changeImage: "Изменить фото",
+        addImage: "Добавить фото",
+        
       }
     }
   },

@@ -5,6 +5,7 @@ import { Ad } from './types';
 const db = SQLite.openDatabaseSync('marketplace.db');
 
 export const initDB = async () => {
+  // Для разработки: пересоздаём таблицу
  // await db.execAsync(`DROP TABLE IF EXISTS ads;`);
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS ads (
@@ -14,7 +15,9 @@ export const initDB = async () => {
       price TEXT,
       currency TEXT,
       dealType TEXT NOT NULL DEFAULT 'sale',
-      date TEXT
+      date TEXT,
+      imageUrl TEXT,
+      source TEXT DEFAULT 'user'
     );
   `);
 };
@@ -22,8 +25,8 @@ export const initDB = async () => {
 // CREATE
 export const addAd = async (ad: Omit<Ad, 'id'>): Promise<number> => {
   const result = await db.runAsync(
-    'INSERT INTO ads (title, description, price, currency, dealType, date) VALUES (?, ?, ?, ?, ?, ?)',
-    [ad.title, ad.description, ad.price, ad.currency, ad.dealType, ad.date]
+    'INSERT INTO ads (title, description, price, currency, dealType, date, imageUrl, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [ad.title, ad.description, ad.price, ad.currency, ad.dealType, ad.date, ad.imageUrl || null, ad.source || 'user']
   );
   return result.lastInsertRowId;
 };
@@ -42,8 +45,8 @@ export const getAdById = async (id: number): Promise<Ad | null> => {
 // UPDATE
 export const updateAd = async (id: number, ad: Omit<Ad, 'id'>): Promise<void> => {
   await db.runAsync(
-    'UPDATE ads SET title = ?, description = ?, price = ?, currency = ?, dealType = ?, date = ? WHERE id = ?',
-    [ad.title, ad.description, ad.price, ad.currency, ad.dealType, ad.date, id]
+    'UPDATE ads SET title = ?, description = ?, price = ?, currency = ?, dealType = ?, date = ?, imageUrl = ?, source = ? WHERE id = ?',
+    [ad.title, ad.description, ad.price, ad.currency, ad.dealType, ad.date, ad.imageUrl || null, ad.source || 'user', id]
   );
 };
 
@@ -102,5 +105,12 @@ export const seedAdsIfNeeded = async () => {
 
   for (const ad of sampleAds) {
     await addAd(ad);
+  }
+};
+
+export const saveAdsFromAPI = async (apiAds: Omit<Ad, 'id'>[]) => {
+  await db.runAsync('DELETE FROM ads WHERE source = ?', ['api']);
+  for (const ad of apiAds) {
+    await addAd({ ...ad, source: 'api' });
   }
 };

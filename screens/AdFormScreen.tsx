@@ -8,18 +8,22 @@ import {
   Alert,
   ScrollView,
   StatusBar,
+  Image,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Image as ImageIcon } from 'lucide-react-native';
 import { Picker } from '@react-native-picker/picker';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { useTheme } from '../context/ThemeContext';
 import { Colors } from '../constants/Colors';
 import { RootStackParamList, DealType } from '../types';
-import { addAd, updateAd, getAdById } from '../database';
+import { getAdById } from '../database';
 import { getSharedStyles } from '../styles/sharedStyles';
+import { useAds } from '../hooks/useAds';
 
 type AdFormRouteProp = RouteProp<RootStackParamList, 'AdForm'>;
 type AdFormNavigationProp = StackNavigationProp<RootStackParamList, 'AdForm'>;
@@ -39,8 +43,10 @@ export default function AdFormScreen() {
   const [price, setPrice] = useState('');
   const [dealType, setDealType] = useState<DealType>('sale');
   const [currency, setCurrency] = useState('BYN');
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const { createAd, editAd } = useAds();
   const shared = useMemo(() => getSharedStyles(theme), [theme]);
 
   useEffect(() => {
@@ -58,9 +64,26 @@ export default function AdFormScreen() {
         setPrice(ad.price || '');
         setDealType(ad.dealType);
         setCurrency(ad.currency || 'BYN');
+        setImageUri(ad.imageUrl || null);
       }
     } catch (error) {
       Alert.alert(t('error'), t('failedLoadAd'));
+    }
+  };
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+    if (!result.canceled && result.assets[0].uri) {
+      const newUri = result.assets[0].uri;
+      const fileName = `${Date.now()}.jpg`;
+      const destPath = `${FileSystem.documentDirectory}${fileName}`;
+      await FileSystem.copyAsync({ from: newUri, to: destPath });
+      setImageUri(destPath);
     }
   };
 
@@ -80,15 +103,17 @@ export default function AdFormScreen() {
       currency: finalCurrency,
       dealType,
       date: new Date().toLocaleDateString(),
+      imageUrl: imageUri,
+      source: 'user' as const,
     };
 
     setLoading(true);
     try {
       if (adId) {
-        await updateAd(adId, adData);
+        await editAd(adId, adData);
         Alert.alert(t('success'), t('adUpdated'));
       } else {
-        await addAd(adData);
+        await createAd(adData);
         Alert.alert(t('success'), t('adAdded'));
       }
       navigation.goBack();
@@ -119,10 +144,7 @@ export default function AdFormScreen() {
   );
 
   const localStyles = useMemo(() => StyleSheet.create({
-    scrollContent: {
-      flexGrow: 1,
-      padding: 20,
-    },
+    scrollContent: { flexGrow: 1, padding: 20 },
     form: {
       backgroundColor: Colors[theme].card,
       borderRadius: 16,
@@ -149,14 +171,8 @@ export default function AdFormScreen() {
       fontSize: 16,
       color: Colors[theme].text,
     },
-    textArea: {
-      minHeight: 100,
-    },
-    dealTypeContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 8,
-    },
+    textArea: { minHeight: 100 },
+    dealTypeContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
     dealTypeButton: {
       flex: 1,
       paddingVertical: 10,
@@ -167,42 +183,35 @@ export default function AdFormScreen() {
       backgroundColor: Colors[theme].background,
       alignItems: 'center',
     },
-    dealTypeButtonActive: {
-      backgroundColor: Colors[theme].primary,
-      borderColor: Colors[theme].primary,
-    },
-    dealTypeText: {
-      fontWeight: '600',
-      color: Colors[theme].text,
-    },
-    dealTypeTextActive: {
-      color: '#FFF',
-    },
-    priceRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    priceInput: {
-      flex: 1,           
-      marginRight: 8,
-    },
+    dealTypeButtonActive: { backgroundColor: Colors[theme].primary, borderColor: Colors[theme].primary },
+    dealTypeText: { fontWeight: '600', color: Colors[theme].text },
+    dealTypeTextActive: { color: '#FFF' },
+    priceRow: { flexDirection: 'row', alignItems: 'center' },
+    priceInput: { flex: 1, marginRight: 8 },
     pickerContainer: {
-      flex: 1,           
+      flex: 1,
       backgroundColor: Colors[theme].background,
       borderWidth: 1,
       borderColor: Colors[theme].border,
       borderRadius: 12,
-      
     },
-    picker: {
-      height: 50,
-      color: Colors[theme].text,
+    picker: { height: 50, color: Colors[theme].text },
+    infoText: { marginTop: 8, fontSize: 14, color: Colors[theme].secondaryText, fontStyle: 'italic' },
+    imagePickerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 12,
+      backgroundColor: Colors[theme].iconBackground,
+      borderRadius: 12,
+      marginTop: 12,
     },
-    infoText: {
-      marginTop: 8,
-      fontSize: 14,
-      color: Colors[theme].secondaryText,
-      fontStyle: 'italic',
+    imagePreview: {
+      width: 100,
+      height: 100,
+      borderRadius: 12,
+      marginTop: 12,
+      alignSelf: 'center',
     },
     saveButton: {
       backgroundColor: Colors[theme].primary,
@@ -211,14 +220,13 @@ export default function AdFormScreen() {
       alignItems: 'center',
       marginTop: 24,
     },
-    disabledButton: {
-      opacity: 0.6,
-    },
-    saveButtonText: {
-      color: '#FFF',
+     rowText: {
       fontSize: 16,
-      fontWeight: '700',
+      fontWeight: '500',
+      color: Colors[theme].text,
     },
+    disabledButton: { opacity: 0.6 },
+    saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
   }), [theme]);
 
   return (
@@ -281,13 +289,8 @@ export default function AdFormScreen() {
             </>
           )}
 
-          {dealType === 'free' && (
-            <Text style={localStyles.infoText}>{t('freeInfo')}</Text>
-          )}
-
-          {dealType === 'exchange' && (
-            <Text style={localStyles.infoText}>{t('exchangeInfo')}</Text>
-          )}
+          {dealType === 'free' && <Text style={localStyles.infoText}>{t('freeInfo')}</Text>}
+          {dealType === 'exchange' && <Text style={localStyles.infoText}>{t('exchangeInfo')}</Text>}
 
           <Text style={localStyles.label}>{t('description')}</Text>
           <TextInput
@@ -300,6 +303,17 @@ export default function AdFormScreen() {
             numberOfLines={4}
             textAlignVertical="top"
           />
+
+          <TouchableOpacity onPress={pickImage} style={localStyles.imagePickerButton}>
+            <ImageIcon size={20} color={Colors[theme].primary} />
+            <Text style={[localStyles.rowText, { marginLeft: 8 }]}>
+              {imageUri ? t('changeImage') : t('addImage')}
+            </Text>
+          </TouchableOpacity>
+
+          {imageUri && (
+            <Image source={{ uri: imageUri }} style={localStyles.imagePreview} />
+          )}
 
           <TouchableOpacity
             style={[localStyles.saveButton, loading && localStyles.disabledButton]}

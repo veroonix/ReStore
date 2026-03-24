@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Image } from 'react-native';
 import {
   View,
   FlatList,
@@ -14,10 +15,10 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Settings, PackageOpen, Edit, Trash2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootStackParamList, Ad } from '../types';
-import { getAllAds, deleteAd } from '../database';
 import { useTheme } from '../context/ThemeContext';
 import { Colors } from '../constants/Colors';
 import { getSharedStyles } from '../styles/sharedStyles';
+import { useAds } from '../hooks/useAds';
 
 type MainScreenProps = StackNavigationProp<RootStackParamList, 'Main'>;
 
@@ -26,20 +27,15 @@ export default function MainScreen() {
   const navigation = useNavigation<MainScreenProps>();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const [ads, setAds] = useState<Ad[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const { ads, loading, loadAds, removeAd } = useAds();
 
   const shared = useMemo(() => getSharedStyles(theme), [theme]);
 
-  const loadData = async () => {
-    const data = await getAllAds();
-    setAds(data);
-  };
-
   useFocusEffect(
     useCallback(() => {
-      loadData();
-    }, [])
+      loadAds();
+    }, [loadAds])
   );
 
   const handleDelete = (id: number) => {
@@ -53,8 +49,7 @@ export default function MainScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteAd(id);
-              await loadData();
+              await removeAd(id);
             } catch (error) {
               Alert.alert(t('error'), t('failedDeleteAd'));
             }
@@ -78,6 +73,9 @@ export default function MainScreen() {
         onPress={() => navigation.navigate('Details', { ad: item })}
       >
         <View style={localStyles.cardContent}>
+          {item.imageUrl && (
+      <Image source={{ uri: item.imageUrl }} style={localStyles.image} />
+    )}
           <View style={localStyles.textContainer}>
             <Text style={localStyles.adTitle} numberOfLines={1}>{item.title}</Text>
             <Text style={localStyles.adPrice}>{getPriceDisplay(item)}</Text>
@@ -182,6 +180,12 @@ export default function MainScreen() {
       fontSize: 16,
       color: Colors[theme].secondaryText,
     },
+    image: {
+      width: 50,
+      height: 50,
+      borderRadius: 8,
+      marginRight: 12,
+    },
   }), [theme]);
 
   return (
@@ -207,7 +211,7 @@ export default function MainScreen() {
         refreshing={refreshing}
         onRefresh={async () => {
           setRefreshing(true);
-          await loadData();
+          await loadAds();
           setRefreshing(false);
         }}
         ListEmptyComponent={
