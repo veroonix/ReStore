@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import NetInfo from '@react-native-community/netinfo'; // для Expo можно использовать expo-network
+import NetInfo from '@react-native-community/netinfo'; 
 
 export const useNetworkStatus = () => {
   const [isConnected, setIsConnected] = useState(true);

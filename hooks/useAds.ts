@@ -1,47 +1,134 @@
-import { useState, useCallback } from 'react';
-import { Ad } from '../types';
-import { getAllAds, addAd, updateAd, deleteAd, saveAdsFromAPI } from '../database';
+import { useState, useCallback, useMemo } from 'react';
+import { Ad, DealType } from '../types';
+import { fetchUserAds, addUserAd, updateUserAd, deleteUserAd } from '../services/firestoreService';
+import { getApiCache, saveApiCache } from '../database';
 import { fetchAdsFromAPI } from '../services/api';
 import { useNetworkStatus } from './useNetworkStatus';
+import Fuse from 'fuse.js';
 
 export const useAds = () => {
-  const [ads, setAds] = useState<Ad[]>([]);
+  const [userAds, setUserAds] = useState<Ad[]>([]);
+  const [apiAds, setApiAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(false);
   const isConnected = useNetworkStatus();
 
-   const loadAds = useCallback(async () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterDealType, setFilterDealType] = useState<DealType | 'all'>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'price'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Загрузка пользовательских объявлений (только из Firestore, только онлайн)
+  const loadUserAds = useCallback(async () => {
+    if (!isConnected) {
+      setUserAds([]);
+      return;
+    }
+    try {
+      const ads = await fetchUserAds();
+      setUserAds(ads);
+    } catch (error) {
+      console.warn('Failed to load user ads', error);
+    }
+  }, [isConnected]);
+
+  // Загрузка API-товаров (с кэшированием в SQLite)
+  const loadApiAds = useCallback(async () => {
     setLoading(true);
     try {
       if (isConnected) {
-        const apiAds = await fetchAdsFromAPI();
-        await saveAdsFromAPI(apiAds);
+        const fresh = await fetchAdsFromAPI();
+        await saveApiCache(fresh);
+        setApiAds(fresh);
+      } else {
+        const cached = await getApiCache();
+        setApiAds(cached);
       }
-      // После обновления API (или если интернета нет) всегда показываем всё, что есть в БД
-      const allAds = await getAllAds();
-      setAds(allAds);
     } catch (error) {
-      const allAds = await getAllAds();
-      setAds(allAds);
+      const cached = await getApiCache();
+      setApiAds(cached);
     } finally {
       setLoading(false);
     }
   }, [isConnected]);
 
-  // При создании/редактировании просто сохраняем локально (можно добавить флаг synced)
+  // Общая загрузка
+  const loadAds = useCallback(async () => {
+    await Promise.all([loadUserAds(), loadApiAds()]);
+  }, [loadUserAds, loadApiAds]);
+
+  // Создание пользовательского объявления
   const createAd = useCallback(async (ad: Omit<Ad, 'id'>) => {
-    await addAd(ad);
-    await loadAds(); // перезагружаем список
-  }, [loadAds]);
+    if (!isConnected) throw new Error('No internet');
+    const id = await addUserAd(ad);
+    const newAd = { ...ad, id, isApiAd: false };
+    setUserAds(prev => [newAd, ...prev]);
+  }, [isConnected]);
 
-  const editAd = useCallback(async (id: number, ad: Omit<Ad, 'id'>) => {
-    await updateAd(id, ad);
-    await loadAds();
-  }, [loadAds]);
+  // Редактирование пользовательского объявления
+  const editAd = useCallback(async (id: string, ad: Partial<Ad>) => {
+    if (!isConnected) throw new Error('No internet');
+    await updateUserAd(id, ad);
+    setUserAds(prev => prev.map(item => item.id === id ? { ...item, ...ad } : item));
+  }, [isConnected]);
 
-  const removeAd = useCallback(async (id: number) => {
-    await deleteAd(id);
-    await loadAds();
-  }, [loadAds]);
+  // Удаление пользовательского объявления
+  const removeAd = useCallback(async (id: string) => {
+    if (!isConnected) throw new Error('No internet');
+    await deleteUserAd(id);
+    setUserAds(prev => prev.filter(item => item.id !== id));
+  }, [isConnected]);
 
-  return { ads, loading, loadAds, createAd, editAd, removeAd };
+  const getAdById = useCallback((id: string): Ad | undefined => {
+    return userAds.find(ad => ad.id === id) || apiAds.find(ad => ad.id === id);
+  }, [userAds, apiAds]);
+  // Объединённый список всех объявлений
+  const allAds = useMemo(() => [...userAds, ...apiAds], [userAds, apiAds]);
+
+  // Нечёткий поиск по объединённому списку
+  const fuse = useMemo(() => new Fuse(allAds, {
+    keys: ['title', 'description'],
+    threshold: 0.4,
+  }), [allAds]);
+
+  // Фильтрация, поиск, сортировка
+  const filteredAds = useMemo(() => {
+    let result = allAds;
+    if (filterDealType !== 'all') {
+      result = result.filter(ad => ad.dealType === filterDealType);
+    }
+    if (searchQuery.trim()) {
+      const fuseResults = fuse.search(searchQuery);
+      result = fuseResults.map(r => r.item);
+    }
+    result.sort((a, b) => {
+      let aVal: number, bVal: number;
+      if (sortBy === 'date') {
+        aVal = new Date(a.date).getTime();
+        bVal = new Date(b.date).getTime();
+      } else {
+        aVal = parseFloat(a.price || '0');
+        bVal = parseFloat(b.price || '0');
+      }
+      return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+    return result;
+  }, [allAds, searchQuery, filterDealType, sortBy, sortOrder, fuse]);
+
+  return {
+    ads: filteredAds,
+    loading,
+    loadAds,
+    createAd,
+    editAd,
+    removeAd,
+    searchQuery,
+    setSearchQuery,
+    filterDealType,
+    setFilterDealType,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
+    getAdById
+  };
 };

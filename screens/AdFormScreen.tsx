@@ -21,7 +21,6 @@ import * as FileSystem from 'expo-file-system';
 import { useTheme } from '../context/ThemeContext';
 import { Colors } from '../constants/Colors';
 import { RootStackParamList, DealType } from '../types';
-import { getAdById } from '../database';
 import { getSharedStyles } from '../styles/sharedStyles';
 import { useAds } from '../hooks/useAds';
 
@@ -36,7 +35,7 @@ export default function AdFormScreen() {
   const route = useRoute<AdFormRouteProp>();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const adId = route.params?.adId;
+  const adId = route.params?.adId; // string | undefined
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -46,18 +45,12 @@ export default function AdFormScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { createAd, editAd } = useAds();
+  const { createAd, editAd, getAdById } = useAds();
   const shared = useMemo(() => getSharedStyles(theme), [theme]);
 
   useEffect(() => {
     if (adId) {
-      loadAd(adId);
-    }
-  }, [adId]);
-
-  const loadAd = async (id: number) => {
-    try {
-      const ad = await getAdById(id);
+      const ad = getAdById(adId);
       if (ad) {
         setTitle(ad.title);
         setDescription(ad.description || '');
@@ -65,11 +58,11 @@ export default function AdFormScreen() {
         setDealType(ad.dealType);
         setCurrency(ad.currency || 'BYN');
         setImageUri(ad.imageUrl || null);
+      } else {
+        Alert.alert(t('error'), t('failedLoadAd'));
       }
-    } catch (error) {
-      Alert.alert(t('error'), t('failedLoadAd'));
     }
-  };
+  }, [adId, getAdById, t]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -104,7 +97,6 @@ export default function AdFormScreen() {
       dealType,
       date: new Date().toLocaleDateString(),
       imageUrl: imageUri,
-      source: 'user' as const,
     };
 
     setLoading(true);
@@ -220,7 +212,7 @@ export default function AdFormScreen() {
       alignItems: 'center',
       marginTop: 24,
     },
-     rowText: {
+    rowText: {
       fontSize: 16,
       fontWeight: '500',
       color: Colors[theme].text,

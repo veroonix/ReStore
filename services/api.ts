@@ -4,7 +4,7 @@ import { Ad } from '../types';
 const BASE_URL = 'https://dummyjson.com/products';
 
 const mapProductToAd = (product: any): Ad => ({
-  id: product.id,
+  id: product.id.toString(),
   title: product.title,
   description: product.description,
   price: product.price.toString(),
@@ -12,6 +12,7 @@ const mapProductToAd = (product: any): Ad => ({
   dealType: 'sale',
   date: new Date().toLocaleDateString(),
   imageUrl: product.thumbnail,
+  isApiAd: true,
 });
 
 export const fetchAdsFromAPI = async (): Promise<Ad[]> => {

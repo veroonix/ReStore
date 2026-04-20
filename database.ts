@@ -1,116 +1,33 @@
 // database.ts
 import * as SQLite from 'expo-sqlite';
-import { Ad } from './types';
 
-const db = SQLite.openDatabaseSync('marketplace.db');
+const db = SQLite.openDatabaseSync('cache.db');
 
-export const initDB = async () => {
-  // Для разработки: пересоздаём таблицу
- // await db.execAsync(`DROP TABLE IF EXISTS ads;`);
+export const initCacheDB = async () => {
   await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS ads (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+    CREATE TABLE IF NOT EXISTS api_cache (
+      id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       description TEXT,
       price TEXT,
       currency TEXT,
-      dealType TEXT NOT NULL DEFAULT 'sale',
+      dealType TEXT NOT NULL,
       date TEXT,
-      imageUrl TEXT,
-      source TEXT DEFAULT 'user'
+      imageUrl TEXT
     );
   `);
 };
 
-// CREATE
-export const addAd = async (ad: Omit<Ad, 'id'>): Promise<number> => {
-  const result = await db.runAsync(
-    'INSERT INTO ads (title, description, price, currency, dealType, date, imageUrl, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [ad.title, ad.description, ad.price, ad.currency, ad.dealType, ad.date, ad.imageUrl || null, ad.source || 'user']
-  );
-  return result.lastInsertRowId;
+export const getApiCache = async (): Promise<any[]> => {
+  return await db.getAllAsync('SELECT * FROM api_cache ORDER BY date DESC');
 };
 
-// READ all
-export const getAllAds = async (): Promise<Ad[]> => {
-  return await db.getAllAsync('SELECT * FROM ads ORDER BY id DESC');
-};
-
-// READ one
-export const getAdById = async (id: number): Promise<Ad | null> => {
-  const result = await db.getFirstAsync<Ad>('SELECT * FROM ads WHERE id = ?', [id]);
-  return result ?? null;
-};
-
-// UPDATE
-export const updateAd = async (id: number, ad: Omit<Ad, 'id'>): Promise<void> => {
-  await db.runAsync(
-    'UPDATE ads SET title = ?, description = ?, price = ?, currency = ?, dealType = ?, date = ?, imageUrl = ?, source = ? WHERE id = ?',
-    [ad.title, ad.description, ad.price, ad.currency, ad.dealType, ad.date, ad.imageUrl || null, ad.source || 'user', id]
-  );
-};
-
-// DELETE
-export const deleteAd = async (id: number): Promise<void> => {
-  await db.runAsync('DELETE FROM ads WHERE id = ?', [id]);
-};
-
-// Заполнение тестовыми данными (если таблица пуста)
-export const seedAdsIfNeeded = async () => {
-  const existingAds = await getAllAds();
-  if (existingAds.length > 0) return; 
-
-  const sampleAds: Omit<Ad, 'id'>[] = [
-    {
-      title: "Горный велосипед Author",
-      description: "Продам горный велосипед Author Tracker, 26 дюймов, алюминиевая рама, дисковые гидравлические тормоза, передняя амортизация. В отличном состоянии, пробег небольшой. Торг уместен.",
-      price: "25000",
-      currency: "BYN",
-      dealType: "sale",
-      date: new Date().toLocaleDateString(),
-    },
-    {
-      title: "1-комнатная квартира в центре",
-      description: "Сдам 1-комнатную квартиру в центре. Евроремонт, мебель, техника, хорошая транспортная доступность. Без животных. Срок от 1 года.",
-      price: "35000",
-      currency: "BYN",
-      dealType: "sale",
-      date: new Date().toLocaleDateString(),
-    },
-    {
-      title: "Репетитор по английскому языку",
-      description: "Преподаватель с опытом 10 лет, индивидуальные занятия для детей и взрослых. Подготовка к экзаменам, разговорный английский. Возможен выезд или онлайн.",
-      price: "1000",
-      currency: "BYN",
-      dealType: "sale",
-      date: new Date().toLocaleDateString(),
-    },
-    {
-      title: "Котята (отдам даром)",
-      description: "Отдадим в добрые руки двухмесячных котят (мальчик и девочка). Привиты, лоток приучены. Очень ласковые, ищут дом.",
-      price: null,
-      currency: null,
-      dealType: "free",
-      date: new Date().toLocaleDateString(),
-    },
-    {
-      title: "Меняю iPhone 12 на Android",
-      description: "Предлагаю обменять iPhone 12 128GB в отличном состоянии (гарантия до конца года) на аналогичный флагман Android (Samsung S21/22, Xiaomi 12 и т.п.). Рассмотрю варианты.",
-      price: null,
-      currency: null,
-      dealType: "exchange",
-      date: new Date().toLocaleDateString(),
-    },
-  ];
-
-  for (const ad of sampleAds) {
-    await addAd(ad);
-  }
-};
-
-export const saveAdsFromAPI = async (apiAds: Omit<Ad, 'id'>[]) => {
-  await db.runAsync('DELETE FROM ads WHERE source = ?', ['api']);
-  for (const ad of apiAds) {
-    await addAd({ ...ad, source: 'api' });
+export const saveApiCache = async (items: any[]) => {
+  await db.runAsync('DELETE FROM api_cache');
+  for (const item of items) {
+    await db.runAsync(
+      `INSERT INTO api_cache (id, title, description, price, currency, dealType, date, imageUrl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [item.id, item.title, item.description, item.price, item.currency, item.dealType, item.date, item.imageUrl]
+    );
   }
 };

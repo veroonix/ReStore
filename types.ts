@@ -1,7 +1,7 @@
 export type DealType = 'sale' | 'free' | 'exchange';
 
 export interface Ad {
-  id?: number;
+  id: string;                     // теперь строка (Firestore ID)
   title: string;
   description: string | null;
   price: string | null;
@@ -9,11 +9,11 @@ export interface Ad {
   dealType: DealType;
   date: string;
   imageUrl?: string | null;
-  source?: 'api' | 'user'; // новое поле
+  isApiAd?: boolean;              // true для товаров из API (кэш), false для пользовательских
 }
 export type RootStackParamList = {
   Main: undefined;
   Details: { ad: Ad };
   Settings: undefined;
-  AdForm?: { adId?: number }; 
+  AdForm?: { adId?: string }; 
 };

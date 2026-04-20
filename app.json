@@ -8,8 +8,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-  "backgroundColor": "#ffffff"
-      
+      "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true
@@ -17,9 +16,9 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png"
-        
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.veronix.ReStore"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -27,7 +26,13 @@
     "plugins": [
       "expo-sqlite",
       "expo-localization",
-      "expo-asset"
-    ]
+      "expo-asset",
+      "@react-native-community/datetimepicker"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6d4d96fa-5003-4839-9764-8f279d72257c"
+      }
+    }
   }
 }
