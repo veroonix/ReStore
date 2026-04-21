@@ -69,6 +69,7 @@ i18n.use(initReactI18next).init({
         notificationBody: "Time to check new ads!",
         notificationsScheduled: "Notifications scheduled",
         notificationTimeUpdated: "Notification time updated",
+        connection: "No internet connection",
       }
     },
     ru: {
@@ -133,6 +134,7 @@ i18n.use(initReactI18next).init({
         notificationBody: "Пора проверить новые объявления!",
         notificationsScheduled: "Уведомления запланированы",
         notificationTimeUpdated: "Время уведомления обновлено",
+        connection: "Нет подключения к интернету",
       }
     }
   },

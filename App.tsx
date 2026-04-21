@@ -9,6 +9,7 @@ import i18n from './i18n';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 import * as Notifications from 'expo-notifications';
+import { NetworkStatusBar } from './components/NetworkStatusBar';
 
 
 enableScreens();
@@ -91,6 +92,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+      <NetworkStatusBar />
       <ThemeProvider initialTheme={theme}>
         <ThemedNavigation />
       </ThemeProvider>
