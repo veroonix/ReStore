@@ -1,15 +1,16 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Ad, DealType } from '../types';
-import { fetchUserAds, addUserAd, updateUserAd, deleteUserAd } from '../services/firestoreService';
+import { subscribeToUserAds, addUserAd, updateUserAd, deleteUserAd } from '../services/firestoreService';
 import { getApiCache, saveApiCache } from '../database';
 import { fetchAdsFromAPI } from '../services/api';
 import { useNetworkStatus } from './useNetworkStatus';
 import Fuse from 'fuse.js';
 
+
 export const useAds = () => {
   const [userAds, setUserAds] = useState<Ad[]>([]);
   const [apiAds, setApiAds] = useState<Ad[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingApi, setLoadingApi] = useState(false);
   const isConnected = useNetworkStatus();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,23 +18,22 @@ export const useAds = () => {
   const [sortBy, setSortBy] = useState<'date' | 'price'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Загрузка пользовательских объявлений (только из Firestore, только онлайн)
-  const loadUserAds = useCallback(async () => {
-    if (!isConnected) {
-      setUserAds([]);
-      return;
-    }
-    try {
-      const ads = await fetchUserAds();
-      setUserAds(ads);
-    } catch (error) {
-      console.warn('Failed to load user ads', error);
-    }
-  }, [isConnected]);
+  // **Подписка на реальные обновления пользовательских объявлений**
+  useEffect(() => {
+  if (!isConnected) {
+    setUserAds([]);
+    return;
+  }
+  const unsubscribe = subscribeToUserAds((ads) => {
+    
+    setUserAds(ads);
+  });
+  return () => unsubscribe();
+}, [isConnected]);
 
-  // Загрузка API-товаров (с кэшированием в SQLite)
+  // Загрузка API-товаров (кэш) – без изменений
   const loadApiAds = useCallback(async () => {
-    setLoading(true);
+    setLoadingApi(true);
     try {
       if (isConnected) {
         const fresh = await fetchAdsFromAPI();
@@ -47,77 +47,84 @@ export const useAds = () => {
       const cached = await getApiCache();
       setApiAds(cached);
     } finally {
-      setLoading(false);
+      setLoadingApi(false);
     }
   }, [isConnected]);
 
-  // Общая загрузка
-  const loadAds = useCallback(async () => {
-    await Promise.all([loadUserAds(), loadApiAds()]);
-  }, [loadUserAds, loadApiAds]);
+  // При запуске загружаем API-часть (пользовательские сами придут через подписку)
+  useEffect(() => {
+    loadApiAds();
+  }, [loadApiAds]);
 
-  // Создание пользовательского объявления
   const createAd = useCallback(async (ad: Omit<Ad, 'id'>) => {
     if (!isConnected) throw new Error('No internet');
-    const id = await addUserAd(ad);
-    const newAd = { ...ad, id, isApiAd: false };
-    setUserAds(prev => [newAd, ...prev]);
+    await addUserAd(ad);
   }, [isConnected]);
 
-  // Редактирование пользовательского объявления
   const editAd = useCallback(async (id: string, ad: Partial<Ad>) => {
     if (!isConnected) throw new Error('No internet');
     await updateUserAd(id, ad);
-    setUserAds(prev => prev.map(item => item.id === id ? { ...item, ...ad } : item));
   }, [isConnected]);
 
-  // Удаление пользовательского объявления
   const removeAd = useCallback(async (id: string) => {
     if (!isConnected) throw new Error('No internet');
     await deleteUserAd(id);
-    setUserAds(prev => prev.filter(item => item.id !== id));
   }, [isConnected]);
 
-  const getAdById = useCallback((id: string): Ad | undefined => {
-    return userAds.find(ad => ad.id === id) || apiAds.find(ad => ad.id === id);
-  }, [userAds, apiAds]);
-  // Объединённый список всех объявлений
+  // Объединённый список
   const allAds = useMemo(() => [...userAds, ...apiAds], [userAds, apiAds]);
 
-  // Нечёткий поиск по объединённому списку
+  // Поиск и фильтрация (как было)
   const fuse = useMemo(() => new Fuse(allAds, {
     keys: ['title', 'description'],
-    threshold: 0.4,
+    threshold: 0.3,           // 0.0 = точное совпадение, 1.0 = очень нечёткое
+    distance: 100,            // расстояние для нечёткого совпадения
+    ignoreLocation: true,     // искать по всему тексту, а не только в начале
+    // minMatchCharLength: 2, // минимальная длина совпадения (опционально)
   }), [allAds]);
 
-  // Фильтрация, поиск, сортировка
-  const filteredAds = useMemo(() => {
-    let result = allAds;
-    if (filterDealType !== 'all') {
-      result = result.filter(ad => ad.dealType === filterDealType);
-    }
-    if (searchQuery.trim()) {
-      const fuseResults = fuse.search(searchQuery);
-      result = fuseResults.map(r => r.item);
-    }
-    result.sort((a, b) => {
-      let aVal: number, bVal: number;
-      if (sortBy === 'date') {
-        aVal = new Date(a.date).getTime();
-        bVal = new Date(b.date).getTime();
-      } else {
-        aVal = parseFloat(a.price || '0');
-        bVal = parseFloat(b.price || '0');
-      }
-      return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
-    });
-    return result;
-  }, [allAds, searchQuery, filterDealType, sortBy, sortOrder, fuse]);
 
+// Фильтрация, поиск, сортировка
+const filteredAds = useMemo(() => {
+  // 1. Начинаем с фильтрации по типу (создаем новый массив)
+  let result = filterDealType === 'all' 
+    ? [...allAds] 
+    : allAds.filter(ad => ad.dealType === filterDealType);
+
+  // 2. Нечёткий поиск (если есть запрос)
+  if (searchQuery.trim()) {
+    // Важно: поиск по уже отфильтрованному списку или по всему? 
+    // Обычно ищут по всему, а потом фильтруют. 
+    // Если хотите искать только внутри категории, используйте:
+    const searcher = new Fuse(result, {
+      keys: ['title', 'description'],
+      threshold: 0.4,
+    });
+    result = searcher.search(searchQuery).map(r => r.item);
+  }
+
+  return result.sort((a, b) => {
+    let aVal: number, bVal: number;
+    if (sortBy === 'date') {
+      aVal = new Date(a.date).getTime();
+      bVal = new Date(b.date).getTime();
+    } else {
+      aVal = parseFloat(a.price || '0');
+      bVal = parseFloat(b.price || '0');
+    }
+    
+    return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+  });
+}, [allAds, searchQuery, filterDealType, sortBy, sortOrder]); 
+
+ 
+  const getAdById = useCallback((id: string): Ad | undefined => {
+  return allAds.find(ad => ad.id === id);
+}, [allAds]);
   return {
     ads: filteredAds,
-    loading,
-    loadAds,
+    loading: loadingApi,         // только API-часть может грузиться, пользовательские приходят мгновенно
+    loadAds: loadApiAds,        // для перезагрузки API-кэша (можно оставить)
     createAd,
     editAd,
     removeAd,

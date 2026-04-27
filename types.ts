@@ -12,6 +12,7 @@ export interface Ad {
   isApiAd?: boolean;              // true для товаров из API (кэш), false для пользовательских
 }
 export type RootStackParamList = {
+  Auth: undefined;
   Main: undefined;
   Details: { ad: Ad };
   Settings: undefined;

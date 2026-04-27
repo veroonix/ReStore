@@ -10,7 +10,7 @@ const mapProductToAd = (product: any): Ad => ({
   price: product.price.toString(),
   currency: 'USD',
   dealType: 'sale',
-  date: new Date().toLocaleDateString(),
+  date: new Date().toISOString(),
   imageUrl: product.thumbnail,
   isApiAd: true,
 });

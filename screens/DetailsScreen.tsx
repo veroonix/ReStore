@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Image } from 'react-native';
+import { Image, Alert } from 'react-native';
 import {
   View,
   Text,
@@ -14,8 +14,9 @@ import { RootStackParamList } from '../types';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { Colors } from '../constants/Colors';
-import { ArrowLeft, Edit } from 'lucide-react-native';
+import { ArrowLeft, Edit, Share2 } from 'lucide-react-native';
 import { getSharedStyles } from '../styles/sharedStyles';
+import { Share } from 'react-native';
 
 type DetailsRouteProp = RouteProp<RootStackParamList, 'Details'>;
 type DetailsNavigationProp = StackNavigationProp<RootStackParamList, 'Details'>;
@@ -34,6 +35,21 @@ export default function DetailsScreen() {
     if (ad.dealType === 'free') return t('free');
     if (ad.dealType === 'exchange') return t('exchange');
     return ad.price ? `${ad.price} ${ad.currency || ''}` : '';
+  };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `${ad.title}\n${getPriceDisplay()}\n${ad.description || ''}\nДата: ${new Date(ad.date).toLocaleDateString()}`,
+        title: ad.title,
+      });
+    } catch (error) {
+      Alert.alert(t('error'), t('shareError'));
+    }
+  };
+
+  const handleEdit = () => {
+    navigation.navigate('AdForm', { adId: ad.id });
   };
 
   const localStyles = useMemo(() => StyleSheet.create({
@@ -62,8 +78,8 @@ export default function DetailsScreen() {
       color: Colors[theme].secondaryText,
     },
     header: {
-    ...shared.header,
-    justifyContent: 'space-between',
+      ...shared.header,
+      justifyContent: 'space-between',
     },
     detailImage: {
       width: '100%',
@@ -74,36 +90,39 @@ export default function DetailsScreen() {
     },
   }), [theme]);
 
-  const handleEdit = () => {
-    navigation.navigate('AdForm', { adId: ad.id });
-  };
-
   return (
     <View style={[shared.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      
+
       {/* Кастомный хедер */}
-      <View style={localStyles.header }>
+      <View style={localStyles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={shared.backButton}>
             <ArrowLeft size={24} color={Colors[theme].text} />
           </TouchableOpacity>
           <Text style={shared.headerTitle}>{t('details')}</Text>
         </View>
-        <TouchableOpacity onPress={handleEdit} style={shared.iconButton}>
-          <Edit size={22} color={Colors[theme].primary} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <TouchableOpacity onPress={handleShare} style={shared.iconButton}>
+            <Share2 size={22} color={Colors[theme].primary} />
+          </TouchableOpacity>
+          {!ad.isApiAd && (
+            <TouchableOpacity onPress={handleEdit} style={shared.iconButton}>
+              <Edit size={22} color={Colors[theme].primary} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <View style={localStyles.content}>
-         {ad.imageUrl && (
-            <Image source={{ uri: ad.imageUrl }} style={localStyles.detailImage} />
-          )}
+        {ad.imageUrl && (
+          <Image source={{ uri: ad.imageUrl }} style={localStyles.detailImage} />
+        )}
         <Text style={localStyles.title}>{ad.title}</Text>
         <Text style={localStyles.price}>{getPriceDisplay()}</Text>
         <Text style={localStyles.description}>{ad.description}</Text>
-        <Text style={localStyles.date}>{t('added')}: {ad.date}</Text>
+        <Text style={localStyles.date}>{t('added')}: {new Date(ad.date).toLocaleDateString()}</Text>
       </View>
     </View>
-  );t
+  );
 }

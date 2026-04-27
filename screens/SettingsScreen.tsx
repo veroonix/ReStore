@@ -19,6 +19,9 @@ import { getSharedStyles } from '../styles/sharedStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
+import { useAuth } from '../context/AuthContext';
+import { LogOut } from 'lucide-react-native';
+
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
@@ -26,7 +29,7 @@ export default function SettingsScreen() {
   const { theme, isDark, toggleTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const currentLang = i18n.language;
-
+  const { signOut } = useAuth();
   const shared = useMemo(() => getSharedStyles(theme), [theme]);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -152,6 +155,7 @@ export default function SettingsScreen() {
                 >
                   <Text style={[shared.langBadgeText, currentLang === 'en' && shared.activeBadgeText]}>EN</Text>
                 </TouchableOpacity>
+                
               </View>
             </View>
           </View>
@@ -186,6 +190,47 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             )}
           </View>
+        </View>
+        {/* Кнопка выхода */}
+        <View style={{ marginTop: 32 }}>
+          <TouchableOpacity
+            onPress={async () => {
+              Alert.alert(
+                t('logoutConfirm'),
+                '',
+                [
+                  { text: t('cancel'), style: 'cancel' },
+                  {
+                    text: t('logout'),
+                    style: 'destructive',
+                    onPress: async () => {
+                      try {
+                        await signOut();
+                      } catch (error) {
+                        Alert.alert(t('error'), t('logoutError'));
+                      }
+                    },
+                  },
+                ]
+              );
+            }}
+            style={{
+              backgroundColor: Colors[theme].card,
+              borderRadius: 16,
+              padding: 16,
+              marginHorizontal: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: '#FF3B30',
+            }}
+          >
+            <LogOut size={20} color="#FF3B30" style={{ marginRight: 8 }} />
+            <Text style={{ color: '#FF3B30', fontSize: 16, fontWeight: '600' }}>
+              {t('logout')}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 

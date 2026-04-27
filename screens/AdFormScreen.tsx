@@ -49,36 +49,56 @@ export default function AdFormScreen() {
   const shared = useMemo(() => getSharedStyles(theme), [theme]);
 
   useEffect(() => {
-    if (adId) {
-      const ad = getAdById(adId);
-      if (ad) {
-        setTitle(ad.title);
-        setDescription(ad.description || '');
-        setPrice(ad.price || '');
-        setDealType(ad.dealType);
-        setCurrency(ad.currency || 'BYN');
-        setImageUri(ad.imageUrl || null);
-      } else {
-        Alert.alert(t('error'), t('failedLoadAd'));
-      }
+  if (adId) {
+    const ad = getAdById(adId);
+    if (ad) {
+      setTitle(ad.title);
+      setDescription(ad.description || '');
+      setPrice(ad.price || '');
+      setDealType(ad.dealType);
+      setCurrency(ad.currency || 'BYN');
+      setImageUri(ad.imageUrl || null);
+    } else {
+     // Alert.alert(t('error'), t('failedLoadAd'));
     }
-  }, [adId, getAdById, t]);
+  }
+}, [adId, getAdById, t]);
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
-    if (!result.canceled && result.assets[0].uri) {
-      const newUri = result.assets[0].uri;
-      const fileName = `${Date.now()}.jpg`;
-      const destPath = `${FileSystem.documentDirectory}${fileName}`;
-      await FileSystem.copyAsync({ from: newUri, to: destPath });
-      setImageUri(destPath);
-    }
-  };
+  const takePhoto = async () => {
+  const { status } = await ImagePicker.requestCameraPermissionsAsync();
+  if (status !== 'granted') {
+    Alert.alert(t('error'), t('cameraPermissionRequired'));
+    return;
+  }
+  const result = await ImagePicker.launchCameraAsync({
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 0.5,
+  });
+  if (!result.canceled && result.assets[0].uri) {
+    const newUri = result.assets[0].uri;
+    const fileName = `${Date.now()}.jpg`;
+    const destPath = `${FileSystem.documentDirectory}${fileName}`;
+    await FileSystem.copyAsync({ from: newUri, to: destPath });
+    setImageUri(destPath);
+  }
+};
+
+const pickFromGallery = async () => {
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 0.5,
+  });
+  if (!result.canceled && result.assets[0].uri) {
+    const newUri = result.assets[0].uri;
+    const fileName = `${Date.now()}.jpg`;
+    const destPath = `${FileSystem.documentDirectory}${fileName}`;
+    await FileSystem.copyAsync({ from: newUri, to: destPath });
+    setImageUri(destPath);
+  }
+};
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -95,7 +115,7 @@ export default function AdFormScreen() {
       price: finalPrice,
       currency: finalCurrency,
       dealType,
-      date: new Date().toLocaleDateString(),
+      date: new Date().toISOString(),
       imageUrl: imageUri,
     };
 
@@ -296,11 +316,13 @@ export default function AdFormScreen() {
             textAlignVertical="top"
           />
 
-          <TouchableOpacity onPress={pickImage} style={localStyles.imagePickerButton}>
+          <TouchableOpacity onPress={takePhoto} style={[localStyles.imagePickerButton, { flex: 1, marginRight: 8 }]}>
             <ImageIcon size={20} color={Colors[theme].primary} />
-            <Text style={[localStyles.rowText, { marginLeft: 8 }]}>
-              {imageUri ? t('changeImage') : t('addImage')}
-            </Text>
+            <Text style={[localStyles.rowText, { marginLeft: 8 }]}>{t('takePhoto')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={pickFromGallery} style={[localStyles.imagePickerButton, { flex: 1, marginLeft: 8 }]}>
+            <ImageIcon size={20} color={Colors[theme].primary} />
+            <Text style={[localStyles.rowText, { marginLeft: 8 }]}>{t('chooseFromGallery')}</Text>
           </TouchableOpacity>
 
           {imageUri && (

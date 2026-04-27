@@ -10,7 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 import * as Notifications from 'expo-notifications';
 import { NetworkStatusBar } from './components/NetworkStatusBar';
-
+import { AuthProvider } from './context/AuthContext';
 
 enableScreens();
 SplashScreen.preventAutoHideAsync();
@@ -94,7 +94,9 @@ export default function App() {
     <SafeAreaProvider>
       <NetworkStatusBar />
       <ThemeProvider initialTheme={theme}>
-        <ThemedNavigation />
+        <AuthProvider>
+          <ThemedNavigation />
+        </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

@@ -22,6 +22,8 @@ import { useTheme } from '../context/ThemeContext';
 import { Colors } from '../constants/Colors';
 import { getSharedStyles } from '../styles/sharedStyles';
 import { useAds } from '../hooks/useAds';
+import { Share2 } from 'lucide-react-native';
+import { Share } from 'react-native';
 
 type MainScreenProps = StackNavigationProp<RootStackParamList, 'Main'>;
 
@@ -32,12 +34,14 @@ const AdCard = React.memo(({
   onEdit, 
   onDelete, 
   getPriceDisplay, 
+  onShare, 
   theme 
 }: { 
   item: Ad; 
   onPress: (ad: Ad) => void; 
   onEdit: (id: string) => void; 
   onDelete: (id: string) => void; 
+  onShare: (ad: Ad) => void;
   getPriceDisplay: (ad: Ad) => string; 
   theme: 'light' | 'dark';
 }) => {
@@ -104,17 +108,24 @@ const AdCard = React.memo(({
             <Text style={styles.adTitle} numberOfLines={1}>{item.title}</Text>
             <Text style={styles.adPrice}>{getPriceDisplay(item)}</Text>
           </View>
-          <Text style={styles.adDate}>{item.date}</Text>
+          <Text style={styles.adDate}>{new Date(item.date).toLocaleDateString()}</Text>
         </View>
       </TouchableOpacity>
       <View style={styles.cardActions}>
-        <TouchableOpacity onPress={() => onEdit(item.id!)} style={styles.actionButton}>
-          <Edit size={18} color={Colors[theme].primary} />
+        {!item.isApiAd && (
+          <>
+            <TouchableOpacity onPress={() => onEdit(item.id)} style={styles.actionButton}>
+              <Edit size={18} color={Colors[theme].primary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => onDelete(item.id)} style={styles.actionButton}>
+              <Trash2 size={18} color="#FF3B30" />
+            </TouchableOpacity>
+          </>
+        )}
+        <TouchableOpacity onPress={() => onShare(item)} style={styles.actionButton}>
+          <Share2 size={18} color={Colors[theme].secondaryText} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onDelete(item.id!)} style={styles.actionButton}>
-          <Trash2 size={18} color="#FF3B30" />
-        </TouchableOpacity>
-      </View>
+</View>
     </View>
   );
 });
@@ -202,6 +213,16 @@ export default function MainScreen() {
     setSortOrder(tempSortOrder);
     setSortModalVisible(false);
   };
+  const handleShare = async (ad: Ad) => {
+  try {
+    await Share.share({
+      message: `${ad.title}\n${getPriceDisplay(ad)}\n${ad.description || ''}\nДата: ${new Date(ad.date).toLocaleDateString()}`,
+      title: ad.title,
+    });
+  } catch (error) {
+    Alert.alert(t('error'), t('shareError'));
+  }
+};
 
   const renderItem = useCallback(({ item }: { item: Ad }) => (
     <AdCard
@@ -209,6 +230,7 @@ export default function MainScreen() {
       onPress={(ad) => navigation.navigate('Details', { ad })}
       onEdit={(id) => navigation.navigate('AdForm', { adId: id })}
       onDelete={handleDelete}
+      onShare={handleShare}
       getPriceDisplay={getPriceDisplay}
       theme={theme}
     />

@@ -1,6 +1,5 @@
-// firestoreService.ts
 import { db } from './firebaseConfig';
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, getDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, onSnapshot, QuerySnapshot } from 'firebase/firestore';
 import { Ad } from '../types';
 
 const COLLECTION = 'user_ads';
@@ -24,12 +23,14 @@ export const deleteUserAd = async (id: string) => {
   await deleteDoc(doc(db, COLLECTION, id));
 };
 
-
-/*export const getUserAdById = async (id: string): Promise<Ad | null> => {
-  const docRef = doc(db, COLLECTION, id);
-  const snap = await getDoc(docRef);
-  if (snap.exists()) {
-    return { id: snap.id, ...snap.data() } as unknown as Ad;
-  }
-  return null;
-} */
+// ***** НОВАЯ ФУНКЦИЯ ДЛЯ REAL‑TIME *****
+export const subscribeToUserAds = (callback: (ads: Ad[]) => void): () => void => {
+  const q = query(collection(db, COLLECTION), orderBy('date', 'desc'));
+  const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot) => {
+    const ads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as unknown as Ad));
+    callback(ads);
+  }, (error) => {
+    console.error('Firestore subscription error:', error);
+  });
+  return unsubscribe;
+};
